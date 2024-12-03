@@ -12,6 +12,9 @@ df = statcast(start_date, end_date)
 # Convert game_date to datetime
 df['game_date'] = pd.to_datetime(df['game_date'])
 
+# Extract the season from the game date
+df['season'] = df['game_date'].dt.year
+
 # Define bins for launch_speed (exit velocity) and launch_angle
 launch_speed_bins = [0, 80, 90, 100, 110, float('inf')]
 launch_angle_bins = [-90, -15, 0, 15, 45, float('inf')]
@@ -24,8 +27,8 @@ df['launch_angle_bucket'] = pd.cut(df['launch_angle'], bins=launch_angle_bins, l
 batting_events = ['single', 'double', 'triple', 'home_run', 'walk', 'strikeout']
 df_batting = df[df['events'].isin(batting_events)]
 
-# Group by team and game date
-aggregated_data = df_batting.groupby(['home_team', 'game_date']).agg({
+# Group by season, game_date, home_team, and away_team
+aggregated_data = df_batting.groupby(['season', 'game_date', 'home_team', 'away_team']).agg({
     'events': 'count',  # Total plate appearances (events)
     'hit_location': lambda x: x.value_counts().to_dict(),  # Count of each hit location
     'bb_type': lambda x: x.value_counts().to_dict(),  # Count of each batted ball type
@@ -38,7 +41,14 @@ aggregated_data = df_batting.groupby(['home_team', 'game_date']).agg({
     'iso_value': 'sum',  # Total ISO value
 }).reset_index()
 
+# Restructure the data to match the format you requested
+final_data = aggregated_data[['season', 'game_date', 'home_team', 'away_team', 
+                              'events', 'hit_location', 'bb_type', 'launch_speed', 
+                              'launch_angle', 'estimated_ba_using_speedangle', 
+                              'estimated_woba_using_speedangle', 'woba_value', 
+                              'babip_value', 'iso_value']]
+
 # Save to CSV
-aggregated_data.to_csv('batting_aggregated_data.csv', index=False)
+final_data.to_csv('batting_aggregated_data.csv', index=False)
 
 print("Aggregated batting data saved successfully!")
