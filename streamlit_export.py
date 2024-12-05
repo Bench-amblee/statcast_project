@@ -34,13 +34,24 @@ seasons = list(season_dates.keys())
 selected_seasons = st.multiselect("Select Seasons", options=seasons)
 
 # Team selection (multiple teams)
+# Team selection (multiple teams)
 teams = ['ATL','AZ','BAL','BOS',
          'CHC','CIN','CLE','COL','CWS',
          'DET','HOU','KC','LAA','LAD',
          'MIA','MIL','MIN','NYM','NYY',
          'OAK','PHI','PIT','SD','SEA',
          'SF','STL','TB','TEX','TOR','WSH']
-home_teams = st.multiselect("Select Home Teams", options=teams)
+
+# Checkbox to select all teams
+select_all = st.checkbox("Select All Teams")
+
+# If select all is checked, automatically select all teams
+if select_all:
+    home_teams = teams
+else:
+    home_teams = st.multiselect("Select Home Teams", options=teams, default=[])
+
+st.write(f"Selected teams: {home_teams}")
 
 # Function to load and filter the data based on user input
 def load_and_process_data(seasons, home_teams):
