@@ -99,7 +99,7 @@ def load_and_process_data(seasons, home_teams):
             df = df[df['home_team'].isin(home_teams)]
 
         # Aggregate data at the game level
-         agg_functions = {
+        agg_functions = {
             'pitch_type': lambda x: x.value_counts().to_dict(),
             'bb_type': lambda x: x.value_counts().to_dict(),
             'hit_location': lambda x: x.value_counts().to_dict(),
