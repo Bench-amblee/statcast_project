@@ -34,13 +34,9 @@ seasons = list(season_dates.keys())
 selected_seasons = st.multiselect("Select Seasons", options=seasons)
 
 # Team selection (multiple teams)
-# Team selection (multiple teams)
-teams = ['ATL','AZ','BAL','BOS',
-         'CHC','CIN','CLE','COL','CWS',
-         'DET','HOU','KC','LAA','LAD',
-         'MIA','MIL','MIN','NYM','NYY',
-         'OAK','PHI','PIT','SD','SEA',
-         'SF','STL','TB','TEX','TOR','WSH']
+teams = ['ATL', 'AZ', 'BAL', 'BOS', 'CHC', 'CIN', 'CLE', 'COL', 'CWS',
+         'DET', 'HOU', 'KC', 'LAA', 'LAD', 'MIA', 'MIL', 'MIN', 'NYM', 'NYY',
+         'OAK', 'PHI', 'PIT', 'SD', 'SEA', 'SF', 'STL', 'TB', 'TEX', 'TOR', 'WSH']
 
 # Checkbox to select all teams
 select_all = st.checkbox("Select All Teams")
@@ -72,7 +68,7 @@ def load_and_process_data(seasons, home_teams):
         # Rename hit_distance to hit_distance_sc
         df.rename(columns={'hit_distance': 'hit_distance_sc'}, inplace=True)
 
-        # Define bins
+        # Define bins and labels
         bins = {
             'release_speed': [0, 80, 90, 100, 110, float('inf')],
             'launch_speed': [0, 80, 90, 100, 110, float('inf')],
@@ -103,7 +99,7 @@ def load_and_process_data(seasons, home_teams):
             df = df[df['home_team'].isin(home_teams)]
 
         # Aggregate data at the game level
-        agg_functions = {
+         agg_functions = {
             'pitch_type': lambda x: x.value_counts().to_dict(),
             'bb_type': lambda x: x.value_counts().to_dict(),
             'hit_location': lambda x: x.value_counts().to_dict(),
@@ -120,16 +116,16 @@ def load_and_process_data(seasons, home_teams):
             'estimated_woba_using_speedangle': 'mean',
         }
 
+
         grouped = df.groupby(['season', 'game_date', 'home_team', 'away_team']).agg(agg_functions).reset_index()
 
-        # Reshape data into a tall/narrow format
+        # Reshape and append data
         final_data = grouped.melt(
             id_vars=['season', 'game_date', 'home_team', 'away_team'],
             var_name='metric_name',
             value_name='metric_value'
         )
-
-        # Add metric type
+                # Add metric type
         metric_types = {
             'pitch_type': 'Pitching',
             'release_speed_bucket': 'Pitching',
@@ -146,48 +142,22 @@ def load_and_process_data(seasons, home_teams):
             'estimated_ba_using_speedangle': 'Batting',
             'estimated_woba_using_speedangle': 'Batting',
         }
+        final_data['metric_type'] = final_data['metric_name'].map(metric_types)  # Mapping logic
 
-        final_data['metric_type'] = final_data['metric_name'].map(metric_types)
-
-        # Append the data from this season to the final dataset
         all_data = pd.concat([all_data, final_data])
 
     return all_data
 
-# Run when the button is pressed
 if st.button("Generate Report"):
     if selected_seasons:
-        st.write(f"Filtering data for seasons: {selected_seasons} and teams: {home_teams}")
-    
-        # Add spinner to show loading process
         with st.spinner('Loading data...'):
-            # Actually load and process data
             data = load_and_process_data(selected_seasons, home_teams)
-        
-        # Store the processed data in session state
         st.session_state.data = data
-        st.session_state.processed = True  # Mark as processed
-
         st.write("Data loaded successfully!")
     else:
         st.error("Please select at least one season.")
 
-# If data has been processed, allow the user to download it
-if 'data' in st.session_state and st.session_state.processed:
-    # Format the filename to include the seasons
-    seasons_str = "_".join(selected_seasons)
-    filename = f"statcast_data_seasons_{seasons_str}.csv"
-    
-    # Convert data to CSV
+if 'data' in st.session_state:
     csv_data = st.session_state.data.to_csv(index=False)
-    
-    # Provide download button with the dynamically generated filename
-    st.download_button("Download CSV", csv_data, filename, "text/csv")
-
-    # Option to clear data and re-run the query
-    if st.button("Clear Data"):
-        # Reset session state to allow re-querying
-        del st.session_state.data
-        st.session_state.processed = False
-        st.write("Data has been cleared. You can now re-run the query.")
+    st.download_button("Download CSV", csv_data, f"statcast_data_seasons_{'_'.join(selected_seasons)}.csv")
 
