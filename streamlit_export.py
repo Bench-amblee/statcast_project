@@ -161,14 +161,6 @@ if st.button("Generate Report"):
     
         # Add spinner to show loading process
         with st.spinner('Loading data...'):
-            # Show a progress bar while data is processing
-            progress_bar = st.progress(0)
-            
-            # Simulate long processing time for demonstration purposes
-            for i in range(10):
-                time.sleep(0.3)  # Simulate some work (replace with actual work)
-                progress_bar.progress((i + 1) * 10)  # Update progress bar
-
             # Actually load and process data
             data = load_and_process_data(selected_seasons, home_teams)
         
