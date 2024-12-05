@@ -187,3 +187,4 @@ if 'data' in st.session_state and st.session_state.processed:
         del st.session_state.data
         st.session_state.processed = False
         st.write("Data has been cleared. You can now re-run the query.")
+
