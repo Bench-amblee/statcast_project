@@ -31,7 +31,7 @@ season_dates = {
 
 # Season selection (limit to one season)
 seasons = list(season_dates.keys())
-selected_season = st.selectbox("Select a Season", options=seasons)
+selected_seasons = st.selectbox("Select a Season", options=seasons)
 
 # Team selection (limit to exactly two teams)
 teams = ['ATL', 'AZ', 'BAL', 'BOS',
@@ -52,7 +52,7 @@ else:
     st.write(f"Selected Teams: {selected_teams}")
 
 # Function to load and filter the data based on user input
-def load_and_process_data(selected_season, home_teams):
+def load_and_process_data(season, home_teams):
     # Initialize an empty dataframe to collect all data
     all_data = pd.DataFrame()
 
