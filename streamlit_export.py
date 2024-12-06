@@ -31,7 +31,7 @@ season_dates = {
 
 # Season selection (limit to one season)
 seasons = list(season_dates.keys())
-selected_seasons = st.selectbox("Select a Season", options=seasons)
+selected_season = st.selectbox("Select a Season", options=seasons)
 
 # Team selection (limit to exactly two teams)
 teams = ['ATL', 'AZ', 'BAL', 'BOS',
@@ -154,13 +154,13 @@ def load_and_process_data(season, home_teams):
 
 # Run when the button is pressed
 if st.button("Generate Report"):
-    if selected_seasons:
-        st.write(f"Filtering data for seasons: {selected_seasons} and teams: {home_teams}")
+    if selected_season:
+        st.write(f"Filtering data for seasons: {selected_season} and teams: {home_teams}")
     
         # Add spinner to show loading process
         with st.spinner('Loading data...'):
             # Actually load and process data
-            data = load_and_process_data(selected_seasons, home_teams)
+            data = load_and_process_data(selected_season, home_teams)
         
         # Store the processed data in session state
         st.session_state.data = data
@@ -173,7 +173,7 @@ if st.button("Generate Report"):
 # If data has been processed, allow the user to download it
 if 'data' in st.session_state and st.session_state.processed:
     # Format the filename to include the seasons
-    seasons_str = "_".join(selected_seasons)
+    seasons_str = "_".join(selected_season)
     filename = f"statcast_data_seasons_{seasons_str}.csv"
     
     # Convert data to CSV
