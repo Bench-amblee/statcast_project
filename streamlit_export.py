@@ -56,103 +56,116 @@ st.write(f"Selected teams: {home_teams}")
 # Function to load and filter the data based on user input
 def load_and_process_data(seasons, home_teams):
     # Initialize an empty dataframe to collect all data
-    all_data = pd.DataFrame()
+    final_combined_data = pd.DataFrame()
 
-    # Loop through each selected season and load the data
-    for season in seasons:
-        start_date_str = season_dates[season]['start']
-        end_date_str = season_dates[season]['end']
+    # Split the teams into groups of three
+    team_groups = [home_teams[i:i + 3] for i in range(0, len(home_teams), 3)]
 
-        # Pull the Statcast data for the selected season
-        df = statcast(start_date_str, end_date_str)
+    # Loop through each group of teams
+    for group_index, team_group in enumerate(team_groups):
+        st.write(f"Processing group {group_index + 1}: {team_group}")
 
-        # Add a season column
-        df['season'] = pd.to_datetime(df['game_date']).dt.year
+        # Initialize a temporary dataframe for this group
+        group_data = pd.DataFrame()
 
-        # Rename hit_distance to hit_distance_sc
-        df.rename(columns={'hit_distance': 'hit_distance_sc'}, inplace=True)
+        # Loop through each selected season and load the data for this group
+        for season in seasons:
+            start_date_str = season_dates[season]['start']
+            end_date_str = season_dates[season]['end']
 
-        # Define bins
-        bins = {
-            'release_speed': [0, 80, 90, 100, 110, float('inf')],
-            'launch_speed': [0, 80, 90, 100, 110, float('inf')],
-            'launch_angle': [-90, -15, 0, 15, 45, float('inf')],
-            'woba_value': [0, 0.2, 0.4, 0.6, 0.8, 1],
-            'babip_value': [0, 0.2, 0.4, 0.6, 0.8, 1],
-            'iso_value': [0, 0.2, 0.4, 0.6, 0.8, 1],
-            'hit_distance_sc': [0, 150, 250, 350, float('inf')],
-        }
+            # Pull the Statcast data for the selected season
+            df = statcast(start_date_str, end_date_str)
 
-        bin_labels = {
-            'release_speed': ['<80', '80-90', '90-100', '100-110', '>110'],
-            'launch_speed': ['<80', '80-90', '90-100', '100-110', '>110'],
-            'launch_angle': ['Downward', 'Ground Ball', 'Line Drive', 'Fly Ball', 'High Fly'],
-            'woba_value': ['Low', 'Below Average', 'Average', 'Above Average', 'High'],
-            'babip_value': ['Low', 'Below Average', 'Average', 'Above Average', 'High'],
-            'iso_value': ['Low', 'Below Average', 'Average', 'Above Average', 'High'],
-            'hit_distance_sc': ['<150', '150-250', '250-350', '>350'],
-        }
+            # Add a season column
+            df['season'] = pd.to_datetime(df['game_date']).dt.year
 
-        # Apply binning
-        for metric, bin_ranges in bins.items():
-            if metric in df.columns:
-                df[f'{metric}_bucket'] = pd.cut(df[metric], bins=bin_ranges, labels=bin_labels[metric])
+            # Rename hit_distance to hit_distance_sc
+            df.rename(columns={'hit_distance': 'hit_distance_sc'}, inplace=True)
 
-        # Filter by home teams selected
-        if home_teams:
-            df = df[df['home_team'].isin(home_teams)]
+            # Define bins
+            bins = {
+                'release_speed': [0, 80, 90, 100, 110, float('inf')],
+                'launch_speed': [0, 80, 90, 100, 110, float('inf')],
+                'launch_angle': [-90, -15, 0, 15, 45, float('inf')],
+                'woba_value': [0, 0.2, 0.4, 0.6, 0.8, 1],
+                'babip_value': [0, 0.2, 0.4, 0.6, 0.8, 1],
+                'iso_value': [0, 0.2, 0.4, 0.6, 0.8, 1],
+                'hit_distance_sc': [0, 150, 250, 350, float('inf')],
+            }
 
-        # Aggregate data at the game level
-        agg_functions = {
-            'pitch_type': lambda x: x.value_counts().to_dict(),
-            'bb_type': lambda x: x.value_counts().to_dict(),
-            'hit_location': lambda x: x.value_counts().to_dict(),
-            'release_speed_bucket': lambda x: x.value_counts().to_dict(),
-            'launch_speed_bucket': lambda x: x.value_counts().to_dict(),
-            'launch_angle_bucket': lambda x: x.value_counts().to_dict(),
-            'woba_value_bucket': lambda x: x.value_counts().to_dict(),
-            'babip_value_bucket': lambda x: x.value_counts().to_dict(),
-            'iso_value_bucket': lambda x: x.value_counts().to_dict(),
-            'hit_distance_sc_bucket': lambda x: x.value_counts().to_dict(),
-            'release_pos_x': 'mean',
-            'release_pos_z': 'mean',
-            'estimated_ba_using_speedangle': 'mean',
-            'estimated_woba_using_speedangle': 'mean',
-        }
+            bin_labels = {
+                'release_speed': ['<80', '80-90', '90-100', '100-110', '>110'],
+                'launch_speed': ['<80', '80-90', '90-100', '100-110', '>110'],
+                'launch_angle': ['Downward', 'Ground Ball', 'Line Drive', 'Fly Ball', 'High Fly'],
+                'woba_value': ['Low', 'Below Average', 'Average', 'Above Average', 'High'],
+                'babip_value': ['Low', 'Below Average', 'Average', 'Above Average', 'High'],
+                'iso_value': ['Low', 'Below Average', 'Average', 'Above Average', 'High'],
+                'hit_distance_sc': ['<150', '150-250', '250-350', '>350'],
+            }
 
-        grouped = df.groupby(['season', 'game_date', 'home_team', 'away_team']).agg(agg_functions).reset_index()
+            # Apply binning
+            for metric, bin_ranges in bins.items():
+                if metric in df.columns:
+                    df[f'{metric}_bucket'] = pd.cut(df[metric], bins=bin_ranges, labels=bin_labels[metric])
 
-        # Reshape data into a tall/narrow format
-        final_data = grouped.melt(
-            id_vars=['season', 'game_date', 'home_team', 'away_team'],
-            var_name='metric_name',
-            value_name='metric_value'
-        )
+            # Filter by home teams in the current group
+            if team_group:
+                df = df[df['home_team'].isin(team_group)]
 
-        # Add metric type
-        metric_types = {
-            'pitch_type': 'Pitching',
-            'release_speed_bucket': 'Pitching',
-            'bb_type': 'Batting',
-            'launch_speed_bucket': 'Batting',
-            'launch_angle_bucket': 'Batting',
-            'woba_value_bucket': 'Batting',
-            'babip_value_bucket': 'Batting',
-            'iso_value_bucket': 'Batting',
-            'hit_distance_sc_bucket': 'Batting',
-            'hit_location': 'Pitching',
-            'release_pos_x': 'Pitching',
-            'release_pos_z': 'Pitching',
-            'estimated_ba_using_speedangle': 'Batting',
-            'estimated_woba_using_speedangle': 'Batting',
-        }
+            # Aggregate data at the game level
+            agg_functions = {
+                'pitch_type': lambda x: x.value_counts().to_dict(),
+                'bb_type': lambda x: x.value_counts().to_dict(),
+                'hit_location': lambda x: x.value_counts().to_dict(),
+                'release_speed_bucket': lambda x: x.value_counts().to_dict(),
+                'launch_speed_bucket': lambda x: x.value_counts().to_dict(),
+                'launch_angle_bucket': lambda x: x.value_counts().to_dict(),
+                'woba_value_bucket': lambda x: x.value_counts().to_dict(),
+                'babip_value_bucket': lambda x: x.value_counts().to_dict(),
+                'iso_value_bucket': lambda x: x.value_counts().to_dict(),
+                'hit_distance_sc_bucket': lambda x: x.value_counts().to_dict(),
+                'release_pos_x': 'mean',
+                'release_pos_z': 'mean',
+                'estimated_ba_using_speedangle': 'mean',
+                'estimated_woba_using_speedangle': 'mean',
+            }
 
-        final_data['metric_type'] = final_data['metric_name'].map(metric_types)
+            grouped = df.groupby(['season', 'game_date', 'home_team', 'away_team']).agg(agg_functions).reset_index()
 
-        # Append the data from this season to the final dataset
-        all_data = pd.concat([all_data, final_data])
+            # Reshape data into a tall/narrow format
+            final_data = grouped.melt(
+                id_vars=['season', 'game_date', 'home_team', 'away_team'],
+                var_name='metric_name',
+                value_name='metric_value'
+            )
 
-    return all_data
+            # Add metric type
+            metric_types = {
+                'pitch_type': 'Pitching',
+                'release_speed_bucket': 'Pitching',
+                'bb_type': 'Batting',
+                'launch_speed_bucket': 'Batting',
+                'launch_angle_bucket': 'Batting',
+                'woba_value_bucket': 'Batting',
+                'babip_value_bucket': 'Batting',
+                'iso_value_bucket': 'Batting',
+                'hit_distance_sc_bucket': 'Batting',
+                'hit_location': 'Pitching',
+                'release_pos_x': 'Pitching',
+                'release_pos_z': 'Pitching',
+                'estimated_ba_using_speedangle': 'Batting',
+                'estimated_woba_using_speedangle': 'Batting',
+            }
+
+            final_data['metric_type'] = final_data['metric_name'].map(metric_types)
+
+            # Append the data for this season and group to the group's dataframe
+            group_data = pd.concat([group_data, final_data])
+
+        # Append the group's data to the final combined dataframe
+        final_combined_data = pd.concat([final_combined_data, group_data])
+
+    return final_combined_data
 
 # Run when the button is pressed
 if st.button("Generate Report"):
@@ -161,6 +174,7 @@ if st.button("Generate Report"):
     
         # Add spinner to show loading process
         with st.spinner('Loading data...'):
+
             # Actually load and process data
             data = load_and_process_data(selected_seasons, home_teams)
         
